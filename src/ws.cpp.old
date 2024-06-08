@@ -1,0 +1,32 @@
+#include <WiFi.h>
+#include <WebSocketsClient.h>
+
+WebSocketsClient webSocket;
+
+void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+  switch(type) {
+    case WStype_DISCONNECTED:
+      Serial.printf("[WSc] Disconnected!\n");
+      break;
+    case WStype_CONNECTED:
+      Serial.printf("[WSc] Connected to url: %s\n", payload);
+      webSocket.sendTXT("Connected");
+      break;
+    case WStype_TEXT:
+      Serial.printf("[WSc] get text: %s\n", payload);
+      break;
+  }
+}
+
+void setup() {
+  // ...
+  webSocket.begin("server_address", 3000, "/");
+  webSocket.onEvent(webSocketEvent);
+  webSocket.setReconnectInterval(5000);
+}
+
+void loop() {
+  // ...
+  webSocket.loop();
+  // ...
+}

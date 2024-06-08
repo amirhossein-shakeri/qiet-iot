@@ -1,0 +1,61 @@
+#include <DHT.h>
+
+// Constants
+#define DHTPIN 4          // Pin where the DHT22 is connected
+#define DHTTYPE DHT22     // DHT 22 (AM2302)
+#define FAN_PIN 5         // Pin for switching the fan on/off
+#define PWM_PIN 18        // PWM pin for controlling fan speed
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// Parameters for fan control
+float setpointTemperature = 25.0; // Desired temperature in Celsius
+int maxFanSpeed = 255;            // Maximum speed for the fan (PWM value)
+
+// Function to map temperature to fan speed
+int calculateFanSpeed(float temperature) {
+  if (temperature < setpointTemperature) {
+    return 0; // Turn off the fan if temperature is below setpoint
+  }
+
+  // Simple linear mapping for demonstration purposes
+  int speed = map(temperature, setpointTemperature, setpointTemperature + 10, 0, maxFanSpeed);
+  return constrain(speed, 0, maxFanSpeed);
+}
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+
+  pinMode(FAN_PIN, OUTPUT);
+  pinMode(PWM_PIN, OUTPUT);
+
+  digitalWrite(FAN_PIN, LOW); // Ensure fan is off initially
+}
+
+void loop() {
+  float temperature = dht.readTemperature();
+
+  if (isnan(temperature)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.println(" *C");
+
+  int fanSpeed = calculateFanSpeed(temperature);
+
+  if (fanSpeed > 0) {
+    digitalWrite(FAN_PIN, HIGH); // Turn the fan on
+    ledcAttachPin(PWM_PIN, 0); // Attach PWM to the fan control pin (channel 0)
+    ledcSetup(0, 5000, 8);     // Set up PWM channel 0 with 5kHz frequency and 8-bit resolution
+    ledcWrite(0, fanSpeed);    // Set the fan speed
+  } else {
+    digitalWrite(FAN_PIN, LOW); // Turn the fan off
+    ledcDetachPin(PWM_PIN);    // Detach PWM signal
+  }
+
+  delay(2000); // Wait for 2 seconds before reading again
+}
